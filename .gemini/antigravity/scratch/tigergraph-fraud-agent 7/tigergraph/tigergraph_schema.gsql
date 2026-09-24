@@ -1,0 +1,186 @@
+// ============================================================================
+// TigerGraph GSQL Schema for Fraud Investigation & Next-Best Action (HHGOA)
+// Graph Name: FraudInvestigationGraph
+// ============================================================================
+
+CREATE GRAPH FraudInvestigationGraph ()
+
+// ----------------------------------------------------------------------------
+// 1. VERTEX DEFINITIONS
+// ----------------------------------------------------------------------------
+
+// Customer Vertex: Entity owning accounts and cards
+CREATE VERTEX Customer (
+    PRIMARY_ID customer_id STRING,
+    full_name STRING,
+    ssn_hash STRING,
+    dob STRING,
+    address STRING,
+    phone STRING,
+    email STRING,
+    kyc_status STRING,
+    risk_tier STRING,
+    created_at DATETIME
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// Account Vertex: Financial accounts holding balances
+CREATE VERTEX Account (
+    PRIMARY_ID account_id STRING,
+    account_type STRING, // CHECKING, SAVINGS, CREDIT
+    balance DOUBLE,
+    credit_limit DOUBLE,
+    status STRING, // ACTIVE, SUSPENDED, FROZEN, CLOSED
+    opened_date DATETIME,
+    baseline_velocity DOUBLE, // typical txns per week
+    baseline_avg_amount DOUBLE
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// Card Vertex: Credit / Debit cards tied to accounts (IEEE-CIS Card1-Card6)
+CREATE VERTEX Card (
+    PRIMARY_ID card_id STRING,
+    card_number_masked STRING,
+    card_type STRING, // VISA, MASTERCARD, DISCOVER, AMEX
+    card_category STRING, // CREDIT, DEBIT
+    bank_name STRING,
+    issuer_code STRING,
+    expiration_date STRING,
+    is_blocked BOOL DEFAULT false
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// Transaction Vertex: Individual payment transactions (IEEE-CIS TransactionDT, TransactionAmt)
+CREATE VERTEX Transaction (
+    PRIMARY_ID transaction_id STRING,
+    amount DOUBLE,
+    timestamp DATETIME,
+    risk_score DOUBLE, // 0.0 to 1.0 (Model risk score)
+    product_code STRING,
+    channel STRING, // WEB, MOBILE_APP, POS, ATM
+    status STRING, // APPROVED, DECLINED, PENDING_REVIEW, BLOCKED
+    currency STRING DEFAULT "USD",
+    distance_from_home DOUBLE,
+    is_foreign BOOL DEFAULT false
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// Device Vertex: User equipment & browser fingerprint
+CREATE VERTEX Device (
+    PRIMARY_ID device_id STRING,
+    device_type STRING, // iOS, Android, Windows, Mac, Linux
+    device_fingerprint STRING,
+    browser STRING,
+    is_proxy_or_vpn BOOL DEFAULT false,
+    is_emulator BOOL DEFAULT false,
+    first_seen DATETIME,
+    last_seen DATETIME
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// IPAddress Vertex: Network IP and geolocation
+CREATE VERTEX IPAddress (
+    PRIMARY_ID ip_address STRING,
+    country STRING,
+    region STRING,
+    city STRING,
+    asn STRING,
+    is_tor BOOL DEFAULT false,
+    is_data_center BOOL DEFAULT false,
+    reputation_score DOUBLE DEFAULT 0.0 // 0.0 (clean) to 1.0 (malicious)
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// Merchant Vertex: Payee or recipient institution
+CREATE VERTEX Merchant (
+    PRIMARY_ID merchant_id STRING,
+    merchant_name STRING,
+    mcc_code STRING, // Merchant Category Code (e.g. 5732 Electronics, 7995 Gambling)
+    risk_category STRING, // LOW, MEDIUM, HIGH
+    country STRING
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// EmailDomain Vertex: Email provider domain (IEEE-CIS P_emaildomain, R_emaildomain)
+CREATE VERTEX EmailDomain (
+    PRIMARY_ID domain_name STRING,
+    is_disposable BOOL DEFAULT false,
+    reputation STRING
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// FraudCase Vertex: Progressed investigation record
+CREATE VERTEX FraudCase (
+    PRIMARY_ID case_id STRING,
+    created_at DATETIME,
+    updated_at DATETIME,
+    trigger_type STRING, // MODEL_SCORE, CUSTOMER_REPORT, ANALYST_MANUAL, VELOCITY_SPIKE
+    status STRING, // OPEN, GATHERING_EVIDENCE, UNDER_REVIEW, ESCALATED, CLOSED_FRAUD, CLOSED_CLEARED
+    assessed_risk_score DOUBLE, // 0 to 100
+    uncertainty_level STRING, // LOW, MEDIUM, HIGH
+    pre_nba_action STRING,
+    pre_nba_approval STRING,
+    post_nba_action STRING,
+    post_nba_approval STRING,
+    detected_pattern STRING,
+    sar_filing_required BOOL DEFAULT false,
+    investigation_summary STRING,
+    decision_rationale STRING
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// SARReport Vertex: Regulatory Suspicious Activity Report record
+CREATE VERTEX SARReport (
+    PRIMARY_ID sar_id STRING,
+    filing_date DATETIME,
+    fincen_narrative STRING,
+    suspect_entities STRING,
+    total_suspicious_amount DOUBLE,
+    compliance_officer_id STRING,
+    filing_status STRING // DRAFT, APPROVED, SUBMITTED
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// FraudPattern Vertex: Formal fraud typology definitions
+CREATE VERTEX FraudPattern (
+    PRIMARY_ID pattern_name STRING,
+    description STRING,
+    typical_indicators STRING,
+    recommended_policy_action STRING
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+
+// ----------------------------------------------------------------------------
+// 2. EDGE DEFINITIONS
+// ----------------------------------------------------------------------------
+
+// Customer <-> Account
+CREATE DIRECTED EDGE OWNS_ACCOUNT (FROM Customer, TO Account, since DATETIME) WITH REVERSE_EDGE="OWNED_BY_CUSTOMER";
+
+// Account <-> Card
+CREATE DIRECTED EDGE HAS_CARD (FROM Account, TO Card, issued_date DATETIME) WITH REVERSE_EDGE="LINKED_TO_ACCOUNT";
+
+// Card <-> Transaction
+CREATE DIRECTED EDGE CARD_TRANSACTION (FROM Card, TO Transaction, auth_method STRING) WITH REVERSE_EDGE="PROCESSED_ON_CARD";
+
+// Account <-> Transaction
+CREATE DIRECTED EDGE DEBITED_FROM (FROM Transaction, TO Account) WITH REVERSE_EDGE="ACCOUNT_TRANSACTIONS";
+
+// Transaction <-> Merchant
+CREATE DIRECTED EDGE PAID_TO (FROM Transaction, TO Merchant) WITH REVERSE_EDGE="RECEIVED_FROM_TXN";
+
+// Transaction <-> Device
+CREATE DIRECTED EDGE ORIGINATED_FROM_DEVICE (FROM Transaction, TO Device, app_version STRING) WITH REVERSE_EDGE="DEVICE_TRANSACTIONS";
+
+// Transaction <-> IPAddress
+CREATE DIRECTED EDGE ORIGINATED_FROM_IP (FROM Transaction, TO IPAddress, port INT) WITH REVERSE_EDGE="IP_TRANSACTIONS";
+
+// Customer <-> Device (Profiled Devices)
+CREATE UNDIRECTED EDGE USES_DEVICE (FROM Customer, TO Device, times_seen INT, last_used DATETIME);
+
+// Customer <-> IPAddress (Profiled IPs)
+CREATE UNDIRECTED EDGE USES_IP (FROM Customer, TO IPAddress, times_seen INT, last_used DATETIME);
+
+// Account-to-Account Money Transfer
+CREATE DIRECTED EDGE TRANSFERRED_TO (FROM Account, TO Account, amount DOUBLE, timestamp DATETIME, transfer_type STRING) WITH REVERSE_EDGE="TRANSFERRED_FROM";
+
+// Fraud Case Links
+CREATE DIRECTED EDGE INVESTIGATES_TXN (FROM FraudCase, TO Transaction) WITH REVERSE_EDGE="CITED_IN_CASE";
+CREATE DIRECTED EDGE INVESTIGATES_ACCOUNT (FROM FraudCase, TO Account) WITH REVERSE_EDGE="ACCOUNT_CASES";
+CREATE DIRECTED EDGE INVESTIGATES_CUSTOMER (FROM FraudCase, TO Customer) WITH REVERSE_EDGE="CUSTOMER_CASES";
+CREATE DIRECTED EDGE MATCHED_PATTERN (FROM FraudCase, TO FraudPattern, confidence DOUBLE) WITH REVERSE_EDGE="PATTERN_IN_CASES";
+CREATE DIRECTED EDGE GENERATED_SAR (FROM FraudCase, TO SARReport) WITH REVERSE_EDGE="SAR_FOR_CASE";
+
+// Graph Sharing Rings (Synthetic identity / Bust-out / Collusion)
+CREATE UNDIRECTED EDGE SHARES_PII_RING (FROM Customer, TO Customer, shared_attr STRING, weight DOUBLE);
+CREATE UNDIRECTED EDGE SHARES_DEVICE_RING (FROM Account, TO Account, shared_device STRING, count INT);

@@ -1,0 +1,90 @@
+{
+  "case_id": "CASE_16",
+  "timestamp": "2026-09-24T21:11:48Z",
+  "case_summary": {
+    "trigger_type": "CUSTOMER_REPORT",
+    "customer_id": "CUST_5026",
+    "account_id": "ACC_2026",
+    "transaction_id": "TXN_80116",
+    "amount": 120.0,
+    "status": "CLOSED_CLEARED",
+    "assessed_risk_score": 15.0,
+    "uncertainty_level": "LOW",
+    "detected_pattern": "BENIGN_BASELINE"
+  },
+  "investigation_record": {
+    "trigger": "CUSTOMER_REPORT",
+    "graph_entities_inspected": "5 nodes, 6 edges in 2-hop neighborhood",
+    "graph_findings": [
+      "Transaction matches verified baseline device, home geo-location, and standard velocity"
+    ],
+    "policy_rules_evaluated": [],
+    "case_memory_precedents": [
+      {
+        "precedent_case_id": "HIST_CASE_005",
+        "prior_outcome": "CLEARED_FIRST_PARTY",
+        "prior_decision": "DENY_CHARGEBACK",
+        "similarity": 0.712
+      },
+      {
+        "precedent_case_id": "HIST_CASE_007",
+        "prior_outcome": "CLEARED_LEGITIMATE",
+        "prior_decision": "ALLOW_TRANSACTION",
+        "similarity": 0.564
+      }
+    ],
+    "uncertainty_assessment": {
+      "level": "LOW",
+      "confidence_score": 0.95,
+      "evidence_gap_identified": null
+    }
+  },
+  "controlled_evidence_gathering": "NOT_REQUIRED_DEFENSIBLE_GRAPH_EVIDENCE_EXISTS",
+  "next_best_action": {
+    "before_additional_evidence": {
+      "recommended_action": "ALLOW_TRANSACTION",
+      "rationale": "Risk indicators are well within normal baseline tolerances.",
+      "required_approval_route": "TIER_2_ANALYST",
+      "approval_description": "Tier-2 Fraud Analyst Sign-Off",
+      "requires_human_approval": true
+    },
+    "after_additional_evidence": {
+      "recommended_action": "ALLOW_TRANSACTION",
+      "rationale": "Activity established as benign standard behavior.",
+      "required_approval_route": "TIER_2_ANALYST",
+      "approval_description": "Tier-2 Fraud Analyst Sign-Off",
+      "requires_human_approval": true
+    }
+  },
+  "suspicious_activity_report": "NOT_REQUIRED_UNDER_POLICY_THRESHOLDS",
+  "graph_persistence": {
+    "written_to_tigergraph": true,
+    "graph_name": "FraudInvestigationGraph",
+    "vertices_created": [
+      "FraudCase"
+    ],
+    "edges_created": [
+      "INVESTIGATES_TXN",
+      "INVESTIGATES_ACCOUNT",
+      "INVESTIGATES_CUSTOMER"
+    ]
+  },
+  "humanized_briefing": {
+    "story": "We reviewed a $120.00 transaction for CUST_5026. The activity aligns with their normal verified devices and residential location. Our assessment determined this is standard, legitimate activity.",
+    "empathy_assessment": "We balanced financial loss prevention with customer sentiment. Cold declines on honest customers create friction and churn. By staging decisions into Pre-Evidence (protect & verify) and Post-Evidence (defensible resolution), we safeguard the bank while treating customers with respect.",
+    "analyst_talking_points": [
+      "If customer contacts support: Confirm they recognize the $120.00 charge.",
+      "Explain that our security systems placed a proactive protective hold to keep their funds safe.",
+      "If verified legitimate, their card can be released instantly with zero negative marks on their record."
+    ],
+    "tone": "Warm, Collaborative, and Defensible"
+  },
+  "customer_outreach": {
+    "sms_text": "Apex Bank Security: Hi, did you just attempt a $120.00 purchase? To protect your account, we've temporarily paused this charge. Reply YES if this was you, or NO to secure your card immediately.",
+    "push_notification": {
+      "title": "Quick Security Verification",
+      "body": "Was this you? A $120.00 charge requires your one-tap approval."
+    },
+    "support_agent_greeting": "Hello! Thank you for calling Apex Bank Security. I see our automated monitoring system placed a temporary courtesy hold on a $120.00 charge to keep your account safe. I'm here to help you get this resolved in just a moment."
+  }
+}

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Sentinel • Fraud Operations & Graph Intelligence</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="apex-theme">
+
+    <!-- Top Navigation Bar (Enterprise SaaS Style) -->
+    <header class="navbar">
+        <div class="navbar-left">
+            <div class="brand">
+                <div class="brand-logo">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-name">Apex Sentinel <span class="version-tag">v4.2</span></div>
+                    <div class="brand-sub">TigerGraph Fraud Operations Console</div>
+                </div>
+            </div>
+
+            <div class="nav-divider"></div>
+
+            <nav class="nav-links">
+                <a href="#queue" class="nav-item active" id="nav-tab-queue">Investigation Queue</a>
+                <a href="#graph" class="nav-item" id="nav-tab-graph">Entity Graph</a>
+                <a href="#policy" class="nav-item" id="nav-tab-policy">Policy Rules (v4.2)</a>
+                <a href="#sar" class="nav-item" id="nav-tab-sar">SAR Filings</a>
+            </nav>
+        </div>
+
+        <div class="navbar-right">
+            <!-- System Telemetry -->
+            <div class="telemetry-pill">
+                <span class="live-dot"></span>
+                <span class="telemetry-label">TigerGraph Savanna Engine</span>
+                <span class="telemetry-stat" id="graph-counts">119 Nodes • 111 Edges</span>
+            </div>
+
+            <div class="telemetry-pill">
+                <span class="text-muted">Benchmark:</span>
+                <span class="font-medium text-emerald-400">20 / 20 Evaluated</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="app-layout">
+
+        <!-- SIDEBAR: Cases Queue -->
+        <aside class="sidebar-panel">
+            <div class="sidebar-header">
+                <div class="queue-title-row">
+                    <h3>Priority Case Queue</h3>
+                    <span class="badge badge-subtle" id="case-total-badge">20 Active</span>
+                </div>
+                <div class="search-box">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="text" id="case-search-input" placeholder="Filter by case, customer, amount...">
+                </div>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="filter-bar">
+                <button class="filter-pill active" data-filter="ALL">All (20)</button>
+                <button class="filter-pill" data-filter="FRAUD">High Risk</button>
+                <button class="filter-pill" data-filter="CLEARED">Cleared</button>
+                <button class="filter-pill" data-filter="SAR">SAR Mandated</button>
+            </div>
+
+            <!-- Case List Cards -->
+            <div class="case-queue-list" id="case-list">
+                <div class="loading-state">Loading investigation queue...</div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary btn-block btn-sm" id="btn-run-all-benchmarks">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Re-evaluate 20 Benchmark Cases
+                </button>
+            </div>
+        </aside>
+
+        <!-- CENTER: Case Dossier, Graph Visualizer & Investigation Flow -->
+        <main class="workspace-center">
+
+            <!-- Case Breadcrumb & Action Bar -->
+            <div class="case-toolbar">
+                <div class="toolbar-left">
+                    <div class="case-breadcrumbs">
+                        <span>Queues</span>
+                        <span class="sep">/</span>
+                        <span>High Priority</span>
+                        <span class="sep">/</span>
+                        <span class="active-crumb" id="active-case-id">CASE_01</span>
+                    </div>
+                    <h2 class="case-headline-title" id="active-case-title">Account Takeover via Chicago Datacenter Proxy</h2>
+                </div>
+
+                <div class="toolbar-actions">
+                    <div class="risk-meter-chip" id="risk-score-badge">
+                        <span class="risk-label">Assessed Risk:</span>
+                        <span class="risk-val" id="risk-score-value">89 / 100</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-reset-graph">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
+                        Fit Graph
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="btn-reinvestigate">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Run Investigation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Customer & Transaction Dossier Strip (Human Persona Context) -->
+            <div class="customer-dossier-bar">
+                <div class="dossier-col customer-col">
+                    <div class="customer-avatar" id="customer-avatar-initials">SJ</div>
+                    <div class="dossier-meta">
+                        <div class="customer-name" id="dossier-customer-name">Sarah Jenkins (CUST_5011)</div>
+                        <div class="customer-sub" id="dossier-customer-sub">Customer for 4.2 years • Preferred Banking • 745 FICO</div>
+                    </div>
+                </div>
+
+                <div class="dossier-divider"></div>
+
+                <div class="dossier-col txn-col">
+                    <div class="meta-label">Transaction Details</div>
+                    <div class="txn-amount-row">
+                        <span class="amount-large" id="dossier-amount">$3,450.00</span>
+                        <span class="badge badge-outline" id="dossier-channel">E-Commerce • Web</span>
+                    </div>
+                    <div class="meta-sub" id="dossier-account">Checking Account • ACC_2011</div>
+                </div>
+
+                <div class="dossier-divider"></div>
+
+                <div class="dossier-col location-col">
+                    <div class="meta-label">Observed Environment</div>
+                    <div class="location-row" id="dossier-location">
+                        <span class="flag-icon">📍</span>
+                        <span>Chicago, IL (Datacenter Proxy)</span>
+                    </div>
+                    <div class="meta-sub" id="dossier-distance">1,250 km jump from verified home profile (Seattle, WA)</div>
+                </div>
+
+                <div class="dossier-divider"></div>
+
+                <div class="dossier-col status-col">
+                    <div class="meta-label">Typology & Status</div>
+                    <div class="status-row">
+                        <span class="badge badge-warning" id="dossier-pattern">ACCOUNT_TAKEOVER</span>
+                    </div>
+                    <div class="meta-sub" id="dossier-status">Status: Under Investigation</div>
+                </div>
+            </div>
+
+            <!-- Graph Canvas Container -->
+            <div class="graph-card" id="graph-card">
+                <div class="graph-canvas-header">
+                    <div class="canvas-title-group">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <h4>TigerGraph Knowledge Subgraph</h4>
+                            <span class="badge badge-info" style="font-size:10px;">Interactive D3 Physics</span>
+                        </div>
+                        <span class="text-muted" style="font-size:12px;">Multi-hop expansion: Account ↔ Transactions ↔ Devices ↔ IP Subnets</span>
+                    </div>
+
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="graph-legend-pills">
+                            <span class="legend-pill"><span class="color-dot dot-acc"></span> Account</span>
+                            <span class="legend-pill"><span class="color-dot dot-txn"></span> Transaction</span>
+                            <span class="legend-pill"><span class="color-dot dot-dev"></span> Device FP</span>
+                            <span class="legend-pill"><span class="color-dot dot-ip"></span> IP Address</span>
+                            <span class="legend-pill"><span class="color-dot dot-cust"></span> Customer</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="btn-toggle-expand-graph" title="Toggle Expanded Graph Canvas">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                            <span id="expand-btn-text">Expand</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="graph-viewport" id="graph-container"></div>
+                <div class="graph-tooltip" id="graph-tooltip"></div>
+
+                <!-- Live Graph Discovery Banner -->
+                <div class="graph-discovery-bar">
+                    <div class="discovery-icon">🔍</div>
+                    <div class="discovery-content">
+                        <strong>TigerGraph GSQL Pattern Finding:</strong>
+                        <span id="graph-discovery-text">Unprofiled Windows Chrome fingerprint observed 1,250 km away from customer's home metro with commercial datacenter hosting flag.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Humanized Storytelling & Empathy Briefing -->
+            <div class="briefing-card">
+                <div class="briefing-header">
+                    <div class="briefing-title">
+                        <span class="badge badge-primary">Investigator Briefing</span>
+                        <span class="briefing-sub">Plain-English executive context & customer empathy rationale</span>
+                    </div>
+                    <div class="briefing-author">Prepared by Autonomous Agent • Validated by Policy v4.2</div>
+                </div>
+
+                <div class="briefing-grid">
+                    <div class="briefing-story">
+                        <h5>The Human Context</h5>
+                        <p id="human-story-text">
+                            We observed an unusual attempt to debit $3,450.00 on customer CUST_5011's account from an unprofiled device located 1,250 km away in Chicago. Because legitimate customers occasionally travel or upgrade hardware, we chose not to strand them with an embarrassing hard decline. We initiated a safe 24-hour courtesy hold and sent a friendly SMS verification prompt.
+                        </p>
+                    </div>
+
+                    <div class="briefing-empathy">
+                        <h5>Customer Sentiment & Impact</h5>
+                        <p id="human-empathy-text">
+                            We balanced loss prevention with customer trust. False positive declines on loyal customers create severe friction. By staging decisions into Pre-Evidence (protect & verify) and Post-Evidence (defensible resolution), we safeguard bank assets while treating our cardholder with respect.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Analyst Call Center Talking Points -->
+                <div class="analyst-guidance-strip">
+                    <div class="guidance-label">Analyst Talking Points (If customer calls in):</div>
+                    <div class="guidance-points" id="analyst-talking-points">
+                        <span>1. Greet cardholder warmly and confirm whether they recognize the $3,450.00 purchase.</span>
+                        <span>2. Explain our security team placed a proactive courtesy hold to keep their funds safe.</span>
+                        <span>3. If verified legitimate, approve charge immediately under Tier-1 authority with zero penalty.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Human Co-Pilot Interactive Chat Drawer -->
+            <div class="copilot-card">
+                <div class="copilot-header">
+                    <div class="copilot-title">
+                        <span class="copilot-avatar">🤖</span>
+                        <div>
+                            <h4>AI Fraud Investigation Co-Pilot</h4>
+                            <span class="text-muted" style="font-size:11px;">Ask in plain English: "Why was this flagged?", "What should I tell the customer?", "Is a SAR required?"</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-subtle">Real-Time Assistant</span>
+                </div>
+
+                <div class="copilot-stream" id="copilot-messages">
+                    <div class="copilot-msg agent">
+                        <div class="msg-author">Apex Co-Pilot</div>
+                        <div class="msg-content">Hello! I've cross-referenced this case with TigerGraph and Bank Fraud Policy v4.2. How can I assist your review?</div>
+                    </div>
+                </div>
+
+                <div class="copilot-form">
+                    <input type="text" id="copilot-input" placeholder="Type a message or question to your co-pilot..." autocomplete="off">
+                    <button class="btn btn-primary btn-sm" id="btn-send-copilot">Send</button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- RIGHT PANEL: Decision Engine, Evidence Simulator, and SAR -->
+        <aside class="sidebar-right">
+
+            <!-- Next Best Action Card -->
+            <div class="action-card">
+                <div class="card-head">
+                    <h3>Next-Best-Action (NBA) Engine</h3>
+                    <span class="badge badge-warning" id="governance-badge">TIER 2 (ANALYST)</span>
+                </div>
+
+                <div class="nba-staged-container">
+                    <!-- Pre-Evidence Recommendation -->
+                    <div class="nba-stage-box pre-evidence">
+                        <div class="stage-tag">
+                            <span>STAGE 1: PRE-EVIDENCE RECOMMENDATION</span>
+                            <span class="tier-pill" id="nba-pre-route">TIER 1 (AUTO)</span>
+                        </div>
+                        <div class="action-title" id="nba-pre-action">TEMPORARY_24H_HOLD and REQUEST_STEP_UP_AUTH</div>
+                        <p class="action-desc" id="nba-pre-rationale">Unrecognized hardware detected. Safe temporary hold initiated while dispatching biometric step-up prompt.</p>
+                    </div>
+
+                    <!-- Post-Evidence Decision -->
+                    <div class="nba-stage-box post-evidence" id="post-nba-container">
+                        <div class="stage-tag">
+                            <span>STAGE 2: POST-EVIDENCE FINAL ACTION</span>
+                            <span class="tier-pill highlight" id="nba-post-route">TIER 2 (ANALYST)</span>
+                        </div>
+                        <div class="action-title text-danger" id="nba-post-action">BLOCK_CARD and FREEZE_ACCOUNT</div>
+                        <p class="action-desc" id="nba-post-rationale">Step-up authentication failed and customer repudiated charge via SMS. Confirmed unauthorized Account Takeover.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controlled Evidence Simulator (Interactive Reactive Testing) -->
+            <div class="action-card">
+                <div class="card-head">
+                    <h3>Controlled Evidence Simulator</h3>
+                    <span class="badge badge-info">Interactive</span>
+                </div>
+                <p class="section-subtext">Simulate real-time customer response to test dynamic agent re-evaluation:</p>
+
+                <div class="sim-radio-group">
+                    <label class="sim-option">
+                        <input type="radio" name="sim_choice" value="CONFIRMED_FRAUD" checked>
+                        <div class="option-content">
+                            <span class="option-title text-danger">Customer Repudiates (Fraud Confirmed)</span>
+                            <span class="option-desc">Customer replies "NO" to SMS alert or step-up authentication expires</span>
+                        </div>
+                    </label>
+
+                    <label class="sim-option">
+                        <input type="radio" name="sim_choice" value="LEGITIMATE_PURCHASE">
+                        <div class="option-content">
+                            <span class="option-title text-success">Customer Validates (Legitimate Charge)</span>
+                            <span class="option-desc">Customer confirms "YES" via SMS or successfully validates Face ID biometrics</span>
+                        </div>
+                    </label>
+                </div>
+
+                <button class="btn btn-primary btn-block" id="btn-simulate-event">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Re-evaluate Action with New Evidence
+                </button>
+            </div>
+
+            <!-- Customer Outreach Notification Mockup -->
+            <div class="action-card">
+                <div class="card-head">
+                    <h3>Customer Communication (SMS)</h3>
+                    <span class="badge badge-subtle">Automated Dispatch</span>
+                </div>
+
+                <div class="mobile-mockup">
+                    <div class="sms-bubble" id="customer-sms-preview">
+                        "Apex Bank Security: Hi, did you just attempt a $3,450.00 purchase? To protect your account, we've temporarily paused this charge. Reply YES if this was you, or NO to secure your card immediately."
+                    </div>
+                    <div class="sms-timestamp">Delivered • Today at 14:04</div>
+                </div>
+
+                <div class="support-script-box">
+                    <div class="script-label">Call Center Representative Script:</div>
+                    <p id="support-script-text">"Hello! Thank you for calling Apex Security. I see our automated monitoring placed a courtesy hold on a $3,450.00 charge. Let me verify this with you right now."</p>
+                </div>
+            </div>
+
+            <!-- FinCEN SAR Report Preview -->
+            <div class="action-card">
+                <div class="card-head">
+                    <h3>FinCEN SAR Filing (Form 111)</h3>
+                    <span class="badge badge-danger" id="sar-badge">31 CFR § 1020.320</span>
+                </div>
+
+                <div class="sar-preview-wrapper">
+                    <pre class="sar-code-block" id="sar-text">Loading regulatory filing narrative...</pre>
+                </div>
+
+                <div class="card-action-row">
+                    <button class="btn btn-secondary btn-sm flex-1" id="btn-copy-sar">Copy SAR Narrative</button>
+                    <button class="btn btn-secondary btn-sm flex-1" id="btn-download-answer">Export Case JSON</button>
+                </div>
+            </div>
+
+            <!-- Case Memory Precedents (Months 1–4) -->
+            <div class="action-card">
+                <div class="card-head">
+                    <h3>Historical Precedents (Case Memory)</h3>
+                </div>
+
+                <div class="precedent-stack" id="precedent-list">
+                    <div class="precedent-card">
+                        <div class="prec-head">
+                            <span class="prec-id">HIST_CASE_001</span>
+                            <span class="prec-match text-success">89% Match</span>
+                        </div>
+                        <div class="prec-body">Chicago proxy IP and unprofiled Chrome desktop. Card blocked and cleared with customer phone validation.</div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <!-- External Script -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

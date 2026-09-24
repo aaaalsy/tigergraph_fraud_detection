@@ -1,0 +1,160 @@
+// ============================================================================
+// TigerGraph GSQL Queries for Fraud Investigation & Pattern Detection
+// ============================================================================
+
+USE GRAPH FraudInvestigationGraph
+
+// ----------------------------------------------------------------------------
+// 1. Detect Shared Device & Identity Rings (Synthetic Identity / Carding Mule)
+// Traverses from an account through devices to find all connected accounts.
+// ----------------------------------------------------------------------------
+CREATE QUERY detect_shared_device_ring(VERTEX<Account> input_acc, INT max_hops) FOR GRAPH FraudInvestigationGraph {
+    OrAccum @visited = false;
+    SetAccum<VERTEX<Device>> @@shared_devices;
+    SetAccum<VERTEX<Account>> @@connected_accounts;
+    SumAccum<INT> @@total_shared_devices = 0;
+    
+    Start = {input_acc};
+    
+    // Hop 1: Account -> Transactions -> Devices
+    Txns = SELECT t FROM Start:s -(ACCOUNT_TRANSACTIONS:e)- Transaction:t;
+    Devs = SELECT d FROM Txns:t -(ORIGINATED_FROM_DEVICE:e)- Device:d
+           ACCUM @@shared_devices += d;
+           
+    // Hop 2: Devices -> Other Transactions -> Other Accounts
+    OtherTxns = SELECT t FROM Devs:d -(DEVICE_TRANSACTIONS:e)- Transaction:t
+                WHERE t NOT IN Txns;
+                
+    OtherAccs = SELECT a FROM OtherTxns:t -(DEBITED_FROM:e)- Account:a
+                WHERE a != input_acc
+                ACCUM @@connected_accounts += a;
+                
+    @@total_shared_devices = @@shared_devices.size();
+    
+    PRINT @@total_shared_devices AS shared_device_count,
+          @@shared_devices AS devices,
+          @@connected_accounts AS ring_accounts,
+          @@connected_accounts.size() AS ring_size;
+}
+
+// ----------------------------------------------------------------------------
+// 2. Trace Fund Flow (Layering / Mule Network Detection)
+// Multi-hop directed fund transfer path tracing from source account.
+// ----------------------------------------------------------------------------
+CREATE QUERY trace_fund_flow(VERTEX<Account> source_acc, INT max_depth) FOR GRAPH FraudInvestigationGraph {
+    TYPEDEF TUPLE<VERTEX<Account> src, VERTEX<Account> tgt, DOUBLE amount, DATETIME ts> TransferRecord;
+    ListAccum<TransferRecord> @@flow_records;
+    SetAccum<VERTEX<Account>> @@all_mules;
+    SumAccum<DOUBLE> @@total_transferred = 0.0;
+    
+    CurrentLevel = {source_acc};
+    
+    WHILE (CurrentLevel.size() > 0 AND @@flow_records.size() < 50) DO
+        CurrentLevel = SELECT tgt FROM CurrentLevel:src -(TRANSFERRED_TO:e)- Account:tgt
+                       ACCUM 
+                           @@flow_records += TransferRecord(src, tgt, e.amount, e.timestamp),
+                           @@all_mules += tgt,
+                           @@total_transferred += e.amount;
+    END;
+    
+    PRINT @@flow_records AS transfer_paths,
+          @@all_mules AS implicated_accounts,
+          @@total_transferred AS total_volume_diverted;
+}
+
+// ----------------------------------------------------------------------------
+// 3. Detect Bust-Out Fraud Pattern
+// Evaluates credit line depletion velocity and ratio against historical baseline.
+// ----------------------------------------------------------------------------
+CREATE QUERY detect_bust_out(VERTEX<Account> input_acc) FOR GRAPH FraudInvestigationGraph {
+    SumAccum<DOUBLE> @@recent_spend_7d = 0.0;
+    SumAccum<INT> @@recent_txn_count = 0;
+    SumAccum<DOUBLE> @@credit_limit = 0.0;
+    SumAccum<DOUBLE> @@balance = 0.0;
+    
+    Start = {input_acc};
+    
+    AccInfo = SELECT s FROM Start:s
+              ACCUM @@credit_limit += s.credit_limit,
+                    @@balance += s.balance;
+                    
+    Txns = SELECT t FROM Start:s -(ACCOUNT_TRANSACTIONS:e)- Transaction:t
+           ACCUM @@recent_spend_7d += t.amount,
+                 @@recent_txn_count += 1;
+                 
+    DOUBLE credit_utilization = 0.0;
+    IF (@@credit_limit > 0.0) THEN
+        credit_utilization = (@@balance + @@recent_spend_7d) / @@credit_limit;
+    END;
+    
+    BOOL is_bust_out_risk = (credit_utilization > 0.85) AND (@@recent_txn_count >= 5);
+    
+    PRINT credit_utilization,
+          @@recent_spend_7d AS rapid_spend_total,
+          @@recent_txn_count AS transaction_burst,
+          is_bust_out_risk;
+}
+
+// ----------------------------------------------------------------------------
+// 4. Account Takeover (ATO) Subgraph Traversal
+// Detects sudden IP distance jumps, new device fingerprint, and channel anomaly.
+// ----------------------------------------------------------------------------
+CREATE QUERY account_takeover_subgraph(VERTEX<Transaction> target_txn) FOR GRAPH FraudInvestigationGraph {
+    SumAccum<DOUBLE> @@distance_jump = 0.0;
+    SetAccum<STRING> @@historical_devices;
+    SetAccum<STRING> @@txn_device;
+    SetAccum<STRING> @@txn_ip;
+    OrAccum @@is_new_device = false;
+    OrAccum @@is_high_risk_ip = false;
+    
+    Txn = {target_txn};
+    
+    TxnProps = SELECT t FROM Txn:t
+               ACCUM @@distance_jump += t.distance_from_home;
+               
+    Dev = SELECT d FROM Txn:t -(ORIGINATED_FROM_DEVICE:e)- Device:d
+          ACCUM @@txn_device += d.device_fingerprint;
+          
+    IP = SELECT i FROM Txn:t -(ORIGINATED_FROM_IP:e)- IPAddress:i
+         ACCUM @@txn_ip += i.ip_address,
+               @@is_high_risk_ip += (i.is_tor OR i.is_data_center OR i.reputation_score > 0.6);
+               
+    Cust = SELECT c FROM Txn:t -(DEBITED_FROM:e)- Account:a -(OWNED_BY_CUSTOMER:oe)- Customer:c;
+    
+    HistDevs = SELECT d FROM Cust:c -(USES_DEVICE:e)- Device:d
+               ACCUM @@historical_devices += d.device_fingerprint;
+               
+    IF (@@txn_device.size() > 0) THEN
+        FOREACH dev_fp IN @@txn_device DO
+            IF NOT (dev_fp IN @@historical_devices) THEN
+                @@is_new_device = true;
+            END;
+        END;
+    END;
+    
+    PRINT @@is_new_device AS new_device_detected,
+          @@is_high_risk_ip AS proxy_or_tor_ip,
+          @@distance_jump AS distance_from_home_km;
+}
+
+// ----------------------------------------------------------------------------
+// 5. Fetch Case Subgraph (GraphRAG Context Extraction)
+// Retrieves 2-hop neighborhood surrounding an investigation target.
+// ----------------------------------------------------------------------------
+CREATE QUERY fetch_case_subgraph(VERTEX<Transaction> target_txn) FOR GRAPH FraudInvestigationGraph {
+    SetAccum<VERTEX> @@subgraph_nodes;
+    
+    Start = {target_txn};
+    @@subgraph_nodes += target_txn;
+    
+    Hop1 = SELECT v FROM Start:s -(:e)- :v
+           ACCUM @@subgraph_nodes += v;
+           
+    Hop2 = SELECT v FROM Hop1:h -(:e)- :v
+           ACCUM @@subgraph_nodes += v;
+           
+    PRINT @@subgraph_nodes AS entities,
+          @@subgraph_nodes.size() AS total_entities_retrieved;
+}
+
+INSTALL QUERY detect_shared_device_ring, trace_fund_flow, detect_bust_out, account_takeover_subgraph, fetch_case_subgraph

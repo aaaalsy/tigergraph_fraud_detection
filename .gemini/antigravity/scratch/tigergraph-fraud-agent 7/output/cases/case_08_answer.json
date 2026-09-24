@@ -1,0 +1,107 @@
+{
+  "case_id": "CASE_08",
+  "timestamp": "2026-09-24T21:11:48Z",
+  "case_summary": {
+    "trigger_type": "MODEL_SCORE",
+    "customer_id": "CUST_5018",
+    "account_id": "ACC_RING_02",
+    "transaction_id": "TXN_80108",
+    "amount": 5400.0,
+    "status": "CLOSED_FRAUD",
+    "assessed_risk_score": 92.0,
+    "uncertainty_level": "LOW",
+    "detected_pattern": "SYNTHETIC_IDENTITY_RING"
+  },
+  "investigation_record": {
+    "trigger": "MODEL_SCORE",
+    "graph_entities_inspected": "7 nodes, 6 edges in 2-hop neighborhood",
+    "graph_findings": [
+      "Connected to 2 other accounts via shared device hardware ID"
+    ],
+    "policy_rules_evaluated": [
+      "Policy Rule \u00a74.2.1: Model score >= 0.82 warrants immediate transaction soft-hold.",
+      "Policy Rule \u00a74.2.3: Elevated risk requires controlled step-up authentication prior to release.",
+      "FinCEN 31 CFR \u00a7 1020.320: Mandatory SAR filing triggered (Amount $5400.00 >= $5,000 threshold with identified suspect/modus operandi)."
+    ],
+    "case_memory_precedents": [
+      {
+        "precedent_case_id": "HIST_CASE_006",
+        "prior_outcome": "CONFIRMED_FRAUD",
+        "prior_decision": "FREEZE_OUTWARD_TRANSFERS_AND_SAR",
+        "similarity": 0.827
+      },
+      {
+        "precedent_case_id": "HIST_CASE_004",
+        "prior_outcome": "CONFIRMED_FRAUD",
+        "prior_decision": "TERMINATE_ACCOUNT_AND_FILE_SAR",
+        "similarity": 0.8
+      }
+    ],
+    "uncertainty_assessment": {
+      "level": "LOW",
+      "confidence_score": 0.94,
+      "evidence_gap_identified": null
+    }
+  },
+  "controlled_evidence_gathering": "NOT_REQUIRED_DEFENSIBLE_GRAPH_EVIDENCE_EXISTS",
+  "next_best_action": {
+    "before_additional_evidence": {
+      "recommended_action": "DECLINE_TRANSACTION and FREEZE_ACCOUNT",
+      "rationale": "Strong graph evidence confirms organized fraud topology. Defensible ground exists to decline and freeze immediately.",
+      "required_approval_route": "TIER_2_ANALYST",
+      "approval_description": "Tier-2 Fraud Analyst Sign-Off",
+      "requires_human_approval": true
+    },
+    "after_additional_evidence": {
+      "recommended_action": "FREEZE_ACCOUNT and FILE_SAR_REPORT",
+      "rationale": "Defensible graph analysis established clear SYNTHETIC_IDENTITY_RING signature. No additional evidence required to proceed with account isolation.",
+      "required_approval_route": "TIER_2_ANALYST",
+      "approval_description": "Tier-2 Fraud Analyst Sign-Off",
+      "requires_human_approval": true
+    }
+  },
+  "suspicious_activity_report": {
+    "sar_id": "SAR-202609-CASE_08",
+    "filing_date": "2026-09-24",
+    "filing_status": "READY_FOR_SUBMISSION",
+    "institution": "Apex National Bank",
+    "account_id": "ACC_RING_02",
+    "customer_id": "CUST_5018",
+    "suspicious_amount": 5400.0,
+    "primary_typology": "Synthetic Identity Ring with Shared PII & Collusive Device Network",
+    "fincen_narrative": "SUSPICIOUS ACTIVITY REPORT (FINCEN FORM 111 / 31 CFR \u00a7 1020.320)\nFiling Institution: Apex National Bank | Date: 2026-09-24 | Tracking: SAR-202609-CASE_08\n================================================================================\n1. SUBJECT & ACCOUNT IDENTIFICATION:\n   Primary Account: ACC_RING_02\n   Customer Reference: CUST_5018\n   Total Suspicious Amount Identified: $5,400.00 USD\n\n2. SUSPICIOUS PATTERN / TYPOLOGY DETECTED:\n   Typology: Synthetic Identity Ring with Shared PII & Collusive Device Network\n   Confidence Assessment: 90.0%\n\n3. DETAILED INVESTIGATION & GRAPH EVIDENCE FINDINGS:\n   - Connected to 2 other accounts via shared device hardware ID\n   - Hardware Fingerprint Sharing: Linked to 2 other distinct banking accounts.\n\n4. ACTIONS TAKEN & GOVERNANCE:\n   Pre-Evidence Recommendation: DECLINE_TRANSACTION and FREEZE_ACCOUNT\n   Post-Evidence Final Action: FREEZE_ACCOUNT and FILE_SAR_REPORT\n   Approval Authority: BSA/AML Compliance Officer (Tier-3)\n   Law Enforcement Referral: Recommended for federal task force review.\n================================================================================",
+    "requires_tier3_signoff": true
+  },
+  "graph_persistence": {
+    "written_to_tigergraph": true,
+    "graph_name": "FraudInvestigationGraph",
+    "vertices_created": [
+      "FraudCase",
+      "SARReport"
+    ],
+    "edges_created": [
+      "INVESTIGATES_TXN",
+      "INVESTIGATES_ACCOUNT",
+      "INVESTIGATES_CUSTOMER",
+      "GENERATED_SAR"
+    ]
+  },
+  "humanized_briefing": {
+    "story": "Our TigerGraph analysis uncovered a hidden cluster: multiple distinct customer accounts are secretly sharing the exact same physical mobile hardware ID. This pattern is characteristic of a synthetic identity ring setting up coordinated credit lines. We intervened to freeze the ring before the funds could be funneled away.",
+    "empathy_assessment": "We balanced financial loss prevention with customer sentiment. Cold declines on honest customers create friction and churn. By staging decisions into Pre-Evidence (protect & verify) and Post-Evidence (defensible resolution), we safeguard the bank while treating customers with respect.",
+    "analyst_talking_points": [
+      "If customer contacts support: Confirm they recognize the $5,400.00 charge.",
+      "Explain that our security systems placed a proactive protective hold to keep their funds safe.",
+      "If verified legitimate, their card can be released instantly with zero negative marks on their record."
+    ],
+    "tone": "Warm, Collaborative, and Defensible"
+  },
+  "customer_outreach": {
+    "sms_text": "Apex Bank Security: Hi, did you just attempt a $5,400.00 purchase? To protect your account, we've temporarily paused this charge. Reply YES if this was you, or NO to secure your card immediately.",
+    "push_notification": {
+      "title": "Quick Security Verification",
+      "body": "Was this you? A $5,400.00 charge requires your one-tap approval."
+    },
+    "support_agent_greeting": "Hello! Thank you for calling Apex Bank Security. I see our automated monitoring system placed a temporary courtesy hold on a $5,400.00 charge to keep your account safe. I'm here to help you get this resolved in just a moment."
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "case_id": "CASE_12",
+  "timestamp": "2026-09-24T21:11:48Z",
+  "case_summary": {
+    "trigger_type": "MODEL_SCORE",
+    "customer_id": "CUST_5022",
+    "account_id": "ACC_2022",
+    "transaction_id": "TXN_80112",
+    "amount": 4800.0,
+    "status": "CLOSED_FRAUD",
+    "assessed_risk_score": 98.0,
+    "uncertainty_level": "LOW",
+    "detected_pattern": "ACCOUNT_TAKEOVER"
+  },
+  "investigation_record": {
+    "trigger": "MODEL_SCORE",
+    "graph_entities_inspected": "5 nodes, 4 edges in 2-hop neighborhood",
+    "graph_findings": [
+      "Unprofiled device login coupled with distance jump of 4200 km and proxy IP flag"
+    ],
+    "policy_rules_evaluated": [
+      "Policy Rule \u00a74.2.1: Model score >= 0.82 warrants immediate transaction soft-hold.",
+      "Policy Rule \u00a74.2.3: Elevated risk requires controlled step-up authentication prior to release."
+    ],
+    "case_memory_precedents": [
+      {
+        "precedent_case_id": "HIST_CASE_001",
+        "prior_outcome": "CONFIRMED_FRAUD",
+        "prior_decision": "BLOCK_CARD_AND_FREEZE",
+        "similarity": 0.688
+      },
+      {
+        "precedent_case_id": "HIST_CASE_008",
+        "prior_outcome": "CONFIRMED_FRAUD",
+        "prior_decision": "FREEZE_ACCOUNT_AND_FILE_SAR",
+        "similarity": 0.632
+      }
+    ],
+    "uncertainty_assessment": {
+      "level": "LOW",
+      "confidence_score": 0.58,
+      "evidence_gap_identified": "Transaction originates from an unprofiled device fingerprint. Unable to determine if cardholder upgraded device or credentials were compromised."
+    }
+  },
+  "controlled_evidence_gathering": {
+    "action_dispatched": "REQUEST_STEP_UP_AUTH",
+    "dispatch_timestamp": "2026-09-24 21:11:48",
+    "step_up_auth_result": "FAILED_OR_EXPIRED",
+    "customer_response": "CONFIRMED_FRAUD",
+    "notes": "Controlled evidence inquiry returned: FAILED_OR_EXPIRED | Customer response: CONFIRMED_FRAUD"
+  },
+  "next_best_action": {
+    "before_additional_evidence": {
+      "recommended_action": "TEMPORARY_24H_HOLD and REQUEST_STEP_UP_AUTH",
+      "rationale": "High uncertainty due to unrecognized hardware device. Placing temporary hold while triggering automated step-up biometric prompt.",
+      "required_approval_route": "TIER_1_AUTO",
+      "approval_description": "None (Agent Autonomous Execution)",
+      "requires_human_approval": false
+    },
+    "after_additional_evidence": {
+      "recommended_action": "BLOCK_CARD and FREEZE_ACCOUNT",
+      "rationale": "Additional evidence resolved uncertainty: Step-up authentication failed and customer repudiated charge. Confirmed unauthorized Account Takeover.",
+      "required_approval_route": "TIER_2_ANALYST",
+      "approval_description": "Tier-2 Fraud Analyst Sign-Off",
+      "requires_human_approval": true
+    }
+  },
+  "suspicious_activity_report": "NOT_REQUIRED_UNDER_POLICY_THRESHOLDS",
+  "graph_persistence": {
+    "written_to_tigergraph": true,
+    "graph_name": "FraudInvestigationGraph",
+    "vertices_created": [
+      "FraudCase"
+    ],
+    "edges_created": [
+      "INVESTIGATES_TXN",
+      "INVESTIGATES_ACCOUNT",
+      "INVESTIGATES_CUSTOMER"
+    ]
+  },
+  "humanized_briefing": {
+    "story": "We observed an unusual attempt to debit $4,800.00 on CUST_5022's account. The transaction came from an unprofiled device located 4,200 km away from their regular location. Because legitimate customers occasionally travel or upgrade their devices, we didn't want to immediately strand them with a cold block. We initiated a safe 24-hour soft hold and reached out for step-up verification.",
+    "empathy_assessment": "We balanced financial loss prevention with customer sentiment. Cold declines on honest customers create friction and churn. By staging decisions into Pre-Evidence (protect & verify) and Post-Evidence (defensible resolution), we safeguard the bank while treating customers with respect.",
+    "analyst_talking_points": [
+      "If customer contacts support: Confirm they recognize the $4,800.00 charge.",
+      "Explain that our security systems placed a proactive protective hold to keep their funds safe.",
+      "If verified legitimate, their card can be released instantly with zero negative marks on their record."
+    ],
+    "tone": "Warm, Collaborative, and Defensible"
+  },
+  "customer_outreach": {
+    "sms_text": "Apex Bank Security: Hi, did you just attempt a $4,800.00 purchase? To protect your account, we've temporarily paused this charge. Reply YES if this was you, or NO to secure your card immediately.",
+    "push_notification": {
+      "title": "Quick Security Verification",
+      "body": "Was this you? A $4,800.00 charge requires your one-tap approval."
+    },
+    "support_agent_greeting": "Hello! Thank you for calling Apex Bank Security. I see our automated monitoring system placed a temporary courtesy hold on a $4,800.00 charge to keep your account safe. I'm here to help you get this resolved in just a moment."
+  }
+}

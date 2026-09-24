@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TigerGraph Agentic Fraud Investigation Prototype</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+    .agent-pulse { animation: pulse-slow 2.5s infinite ease-in-out; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-4 min-h-screen">
+
+  <!-- Main Container Card -->
+  <div class="max-w-7xl mx-auto space-y-4">
+
+    <!-- Header Section -->
+    <header class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-2xl relative">
+          🐯
+          <span class="agent-pulse absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500"></span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-[var(--foreground)]">TigerGraph Agentic Fraud Investigator</h1>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20">HHGOA Hackathon</span>
+          </div>
+          <p class="text-xs text-[var(--muted-foreground)]">Autonomous GraphRAG & Next-Best Action Engine • IEEE-CIS Benchmark</p>
+        </div>
+      </div>
+
+      <!-- Telemetry Chips -->
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <div class="px-3 py-1.5 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] flex items-center gap-2 mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>TigerGraph: <strong>119 Vertices • 111 Edges</strong></span>
+        </div>
+        <div class="px-3 py-1.5 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] mono">
+          <span>Benchmark: <strong class="text-blue-500">20 / 20 Evaluated</strong></span>
+        </div>
+        <div class="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 font-semibold mono">
+          <span>🚨 SAR Reports: <strong>11 Filed</strong></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid: Left Controls & Center Graph & Right NBA -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- LEFT: Case Switcher & Investigation Metrics (3 cols) -->
+      <div class="lg:col-span-3 space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Select Benchmark Case</h2>
+            <span id="case-counter-badge" class="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-500 font-mono">Case 1/20</span>
+          </div>
+          <select id="case-select" class="w-full text-xs bg-[var(--sidebar)] text-[var(--foreground)] border border-[var(--border)] rounded-lg p-2 focus:ring-1 focus:ring-blue-500 focus:outline-none mb-3">
+            <!-- Populated via JS -->
+          </select>
+
+          <!-- Case Quick Stats -->
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between p-2 rounded-lg bg-[var(--sidebar)]">
+              <span class="text-[var(--muted-foreground)]">Trigger Source</span>
+              <span id="stat-trigger" class="font-semibold text-blue-400">MODEL_SCORE</span>
+            </div>
+            <div class="flex justify-between p-2 rounded-lg bg-[var(--sidebar)]">
+              <span class="text-[var(--muted-foreground)]">Transaction Amount</span>
+              <span id="stat-amount" class="font-mono font-bold">$3,450.00</span>
+            </div>
+            <div class="flex justify-between p-2 rounded-lg bg-[var(--sidebar)]">
+              <span class="text-[var(--muted-foreground)]">Risk Model Score</span>
+              <span id="stat-risk" class="font-mono font-bold text-red-400">0.89 / 1.00</span>
+            </div>
+            <div class="flex justify-between p-2 rounded-lg bg-[var(--sidebar)]">
+              <span class="text-[var(--muted-foreground)]">Assessed Typology</span>
+              <span id="stat-pattern" class="font-semibold text-amber-400">ACCOUNT_TAKEOVER</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8-Step Lifecycle Progress Tracker -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm space-y-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Investigation Lifecycle</h3>
+          <div class="space-y-1.5 text-xs">
+            <div class="flex items-center gap-2 p-1.5 rounded bg-emerald-500/10 text-emerald-400">
+              <span class="w-4 h-4 rounded-full bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center">1</span>
+              <span>Trigger & Risk Assessment</span>
+            </div>
+            <div class="flex items-center gap-2 p-1.5 rounded bg-emerald-500/10 text-emerald-400">
+              <span class="w-4 h-4 rounded-full bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center">2</span>
+              <span>TigerGraph GSQL Traversal</span>
+            </div>
+            <div class="flex items-center gap-2 p-1.5 rounded bg-emerald-500/10 text-emerald-400">
+              <span class="w-4 h-4 rounded-full bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center">3</span>
+              <span>Uncertainty & Gap Analysis</span>
+            </div>
+            <div class="flex items-center gap-2 p-1.5 rounded bg-blue-500/10 text-blue-400">
+              <span class="w-4 h-4 rounded-full bg-blue-500 text-[10px] font-bold text-white flex items-center justify-center">4</span>
+              <span>Pre-Evidence NBA & Hold</span>
+            </div>
+            <div class="flex items-center gap-2 p-1.5 rounded bg-amber-500/10 text-amber-400">
+              <span class="w-4 h-4 rounded-full bg-amber-500 text-[10px] font-bold text-white flex items-center justify-center">5</span>
+              <span>Controlled Step-Up Auth</span>
+            </div>
+            <div class="flex items-center gap-2 p-1.5 rounded bg-purple-500/10 text-purple-400">
+              <span class="w-4 h-4 rounded-full bg-purple-500 text-[10px] font-bold text-white flex items-center justify-center">6</span>
+              <span>Post-Evidence Action & SAR</span>
+            </div>
+            <div class="flex items-center gap-2 p-1.5 rounded bg-slate-500/10 text-[var(--muted-foreground)]">
+              <span class="w-4 h-4 rounded-full bg-slate-500 text-[10px] font-bold text-white flex items-center justify-center">7</span>
+              <span>TigerGraph Write-Back</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER: Interactive TigerGraph Subgraph Canvas (5 cols) -->
+      <div class="lg:col-span-5 space-y-3">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm flex flex-col h-[520px]">
+          <div class="flex items-center justify-between pb-2 border-b border-[var(--border)] mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-[var(--foreground)]" id="graph-title">TigerGraph Multi-Hop Subgraph</h2>
+              <span class="text-xs text-[var(--muted-foreground)]" id="graph-subtitle">Centered on Target Transaction • 2-Hop Traversal</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10px]">
+              <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold">Account</span>
+              <span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 font-semibold">Txn</span>
+              <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-semibold">Device</span>
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-semibold">IP</span>
+            </div>
+          </div>
+
+          <!-- SVG Graph Rendering Container -->
+          <div class="relative flex-1 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] overflow-hidden flex items-center justify-center" id="svg-canvas-container">
+            <svg id="network-svg" class="w-full h-full cursor-crosshair">
+              <!-- Dynamically drawn by JS -->
+            </svg>
+            <div id="graph-tooltip" class="absolute hidden bg-slate-900/95 border border-blue-500 text-slate-100 text-xs p-2 rounded-lg pointer-events-none shadow-lg max-w-xs z-20"></div>
+          </div>
+
+          <!-- Graph Evidence Findings Strip -->
+          <div class="mt-2 p-2.5 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] text-xs">
+            <span class="font-semibold text-amber-400">TigerGraph Discovery:</span>
+            <p id="graph-finding-text" class="text-[var(--muted-foreground)] mt-0.5 leading-relaxed">
+              Unprofiled device login coupled with distance jump of 1250 km and datacenter proxy IP flag.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Next-Best Action Engine & Evidence Simulator (4 cols) -->
+      <div class="lg:col-span-4 space-y-3">
+
+        <!-- Next-Best Action Side-by-Side Comparison -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Next-Best-Action (NBA)</h3>
+            <span id="governance-chip" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">TIER_2_ANALYST</span>
+          </div>
+
+          <div class="space-y-2">
+            <!-- Pre-Evidence NBA -->
+            <div class="p-2.5 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] space-y-1">
+              <div class="flex justify-between items-center text-[10px] font-bold text-[var(--muted-foreground)] tracking-wider">
+                <span>BEFORE ADDITIONAL EVIDENCE</span>
+                <span class="text-blue-400 mono">TIER 1 (AUTO)</span>
+              </div>
+              <div id="pre-nba-action" class="font-mono text-xs font-bold text-blue-400">TEMPORARY_24H_HOLD and REQUEST_STEP_UP_AUTH</div>
+              <p id="pre-nba-rationale" class="text-[11px] text-[var(--muted-foreground)] leading-tight">
+                High uncertainty due to unrecognized hardware device. Placing temporary hold while triggering automated step-up biometric prompt.
+              </p>
+            </div>
+
+            <!-- Post-Evidence NBA -->
+            <div id="post-nba-container" class="p-2.5 rounded-lg bg-red-500/5 border border-red-500/30 space-y-1">
+              <div class="flex justify-between items-center text-[10px] font-bold tracking-wider">
+                <span class="text-red-400">AFTER ADDITIONAL EVIDENCE</span>
+                <span id="post-nba-tier" class="text-red-400 mono">TIER 2 (ANALYST)</span>
+              </div>
+              <div id="post-nba-action" class="font-mono text-xs font-bold text-red-500">BLOCK_CARD and FREEZE_ACCOUNT</div>
+              <p id="post-nba-rationale" class="text-[11px] text-[var(--muted-foreground)] leading-tight">
+                Additional evidence resolved uncertainty: Step-up authentication failed and customer repudiated charge. Confirmed unauthorized Account Takeover.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Controlled Evidence Simulator -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Evidence Simulator</h3>
+            <span class="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400 font-semibold">Live Reactive Test</span>
+          </div>
+          <p class="text-[11px] text-[var(--muted-foreground)]">Simulate real-time customer response to test dynamic agent re-evaluation:</p>
+
+          <div class="space-y-1.5 text-xs">
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] cursor-pointer hover:border-blue-500/50 transition">
+              <input type="radio" name="evidence-sim" value="CONFIRMED_FRAUD" checked class="text-blue-500">
+              <div>
+                <span class="font-semibold block text-red-400">Repudiate (Fraud Confirmed)</span>
+                <span class="text-[10px] text-[var(--muted-foreground)]">Customer reports "I didn't make this purchase" or MFA fails</span>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] cursor-pointer hover:border-blue-500/50 transition">
+              <input type="radio" name="evidence-sim" value="LEGITIMATE_PURCHASE" class="text-blue-500">
+              <div>
+                <span class="font-semibold block text-emerald-400">Validate (Legitimate Customer)</span>
+                <span class="text-[10px] text-[var(--muted-foreground)]">Customer confirms via SMS or passes biometric Face ID</span>
+              </div>
+            </label>
+          </div>
+
+          <button id="btn-apply-sim" class="w-full py-2 px-3 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition flex items-center justify-center gap-1.5">
+            <span>⚡ Re-Evaluate Case in Real Time</span>
+          </button>
+        </div>
+
+        <!-- FinCEN SAR Report Preview -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">FinCEN SAR Report</h3>
+            <span id="sar-badge" class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-500/20 text-red-400">31 CFR § 1020.320</span>
+          </div>
+          <div class="p-2 rounded-lg bg-[var(--sidebar)] border border-[var(--border)] max-h-28 overflow-y-auto">
+            <pre id="sar-narrative" class="text-[10px] mono text-[var(--foreground)] whitespace-pre-wrap leading-tight">Loading SAR narrative...</pre>
+          </div>
+          <button id="btn-copy-sar" class="w-full py-1.5 text-[11px] font-semibold rounded bg-[var(--sidebar)] hover:bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] transition">
+            📋 Copy Official SAR Narrative
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- JavaScript Prototype Engine -->
+  <script>
+    // Embedded Benchmark Dataset for instant zero-latency demonstration
+    const CASES = [
+      {
+        id: "CASE_01",
+        title: "Account Takeover via Chicago Datacenter Proxy",
+        trigger: "MODEL_SCORE",
+        amount: 3450.00,
+        risk: 0.89,
+        pattern: "ACCOUNT_TAKEOVER",
+        finding: "Unprofiled device login coupled with distance jump of 1250 km and datacenter proxy IP flag.",
+        sar_required: false,
+        nodes: [
+          { id: "ACC_2011", type: "Account", label: "ACC_2011", x: 120, y: 150 },
+          { id: "TXN_80101", type: "Transaction", label: "$3,450 Txn", x: 250, y: 150 },
+          { id: "DEV_NEW_991", type: "Device", label: "Windows FP", x: 380, y: 100 },
+          { id: "IP_PROXY", type: "IPAddress", label: "198.51.100.44", x: 380, y: 200 },
+          { id: "CUST_5011", type: "Customer", label: "CUST_5011", x: 120, y: 270 }
+        ],
+        edges: [
+          { from: "TXN_80101", to: "ACC_2011", label: "DEBITED_FROM" },
+          { from: "TXN_80101", to: "DEV_NEW_991", label: "DEVICE" },
+          { from: "TXN_80101", to: "IP_PROXY", label: "ORIGIN_IP" },
+          { from: "CUST_5011", to: "ACC_2011", label: "OWNS" }
+        ],
+        pre_nba: "TEMPORARY_24H_HOLD and REQUEST_STEP_UP_AUTH",
+        pre_rationale: "Unrecognized hardware fingerprint. Temporary hold initiated while dispatching biometric step-up prompt.",
+        post_fraud: {
+          action: "BLOCK_CARD and FREEZE_ACCOUNT",
+          rationale: "Step-up authentication failed and customer repudiated charge via SMS. Confirmed ATO.",
+          status: "CLOSED_FRAUD",
+          tier: "TIER_2_ANALYST"
+        },
+        post_cleared: {
+          action: "ALLOW_TRANSACTION and CLOSE_FALSE_POSITIVE",
+          rationale: "Customer verified purchase via biometric Face ID. Hardware fingerprint added to trusted device profile.",
+          status: "CLOSED_CLEARED",
+          tier: "TIER_1_AUTO"
+        }
+      },
+      {
+        id: "CASE_03",
+        title: "High-Value Account Takeover with TOR Proxy ($12,800)",
+        trigger: "MODEL_SCORE",
+        amount: 12800.00,
+        risk: 0.96,
+        pattern: "ACCOUNT_TAKEOVER",
+        finding: "Unprofiled Linux Firefox session via TOR exit node; $12,800 wire attempted following credential change.",
+        sar_required: true,
+        nodes: [
+          { id: "ACC_2013", type: "Account", label: "ACC_2013", x: 120, y: 150 },
+          { id: "TXN_80103", type: "Transaction", label: "$12,800 Wire", x: 250, y: 150 },
+          { id: "DEV_LINUX", type: "Device", label: "Tails Linux FP", x: 380, y: 90 },
+          { id: "IP_TOR", type: "IPAddress", label: "185.220.101.5", x: 380, y: 210 },
+          { id: "CUST_5013", type: "Customer", label: "CUST_5013", x: 120, y: 280 }
+        ],
+        edges: [
+          { from: "TXN_80103", to: "ACC_2013", label: "DEBITED_FROM" },
+          { from: "TXN_80103", to: "DEV_LINUX", label: "DEVICE" },
+          { from: "TXN_80103", to: "IP_TOR", label: "TOR_EXIT" },
+          { from: "CUST_5013", to: "ACC_2013", label: "OWNS" }
+        ],
+        pre_nba: "TEMPORARY_24H_HOLD and REQUEST_STEP_UP_AUTH",
+        pre_rationale: "High-value anomaly from foreign TOR IP. Immediate hold applied pending customer verification.",
+        post_fraud: {
+          action: "BLOCK_CARD, FREEZE_ACCOUNT, and FILE_SAR_REPORT",
+          rationale: "Customer reached via alternate telephone confirmed account compromise. Full wire recall initiated.",
+          status: "CLOSED_FRAUD",
+          tier: "TIER_3_SENIOR_COMPLIANCE"
+        },
+        post_cleared: {
+          action: "ALLOW_TRANSACTION",
+          rationale: "Cardholder verified overseas emergency transfer via security call center.",
+          status: "CLOSED_CLEARED",
+          tier: "TIER_2_ANALYST"
+        }
+      },
+      {
+        id: "CASE_04",
+        title: "Synthetic Identity Ring Alpha (3 Accounts / Shared Device)",
+        trigger: "ANALYST_MANUAL",
+        amount: 7600.00,
+        risk: 0.93,
+        pattern: "SYNTHETIC_IDENTITY_RING",
+        finding: "TigerGraph GSQL detect_shared_device_ring unmasked 3 distinct accounts sharing identical Samsung S23 hardware fingerprint.",
+        sar_required: true,
+        nodes: [
+          { id: "ACC_RING_1", type: "Account", label: "ACC_RING_1", x: 120, y: 100 },
+          { id: "ACC_RING_2", type: "Account", label: "ACC_RING_2", x: 120, y: 200 },
+          { id: "ACC_RING_3", type: "Account", label: "ACC_RING_3", x: 120, y: 300 },
+          { id: "DEV_SHARED", type: "Device", label: "Samsung S23 FP", x: 260, y: 200 },
+          { id: "TXN_80104", type: "Transaction", label: "$7,600 Bust", x: 400, y: 200 }
+        ],
+        edges: [
+          { from: "ACC_RING_1", to: "DEV_SHARED", label: "SHARED_DEV" },
+          { from: "ACC_RING_2", to: "DEV_SHARED", label: "SHARED_DEV" },
+          { from: "ACC_RING_3", to: "DEV_SHARED", label: "SHARED_DEV" },
+          { from: "TXN_80104", to: "DEV_SHARED", label: "DEVICE" }
+        ],
+        pre_nba: "DECLINE_TRANSACTION and FREEZE_ACCOUNT",
+        pre_rationale: "Graph ring topology confirms collusive multi-account hardware sharing.",
+        post_fraud: {
+          action: "FREEZE_ACCOUNT and FILE_SAR_REPORT",
+          rationale: "Physical address and SSN mismatch confirmed. Coordinated freeze of all 3 ring accounts executed.",
+          status: "CLOSED_FRAUD",
+          tier: "TIER_3_SENIOR_COMPLIANCE"
+        },
+        post_cleared: {
+          action: "CLOSE_FALSE_POSITIVE",
+          rationale: "Family members verified sharing household iPad tablet.",
+          status: "CLOSED_CLEARED",
+          tier: "TIER_2_ANALYST"
+        }
+      },
+      {
+        id: "CASE_05",
+        title: "Bust-Out Fraud: Rapid 95% Line Depletion ($9,500)",
+        trigger: "VELOCITY_SPIKE",
+        amount: 9500.00,
+        risk: 0.92,
+        pattern: "BUST_OUT_FRAUD",
+        finding: "Credit limit utilization surged to 95% across 5 rapid luxury electronics purchases following bounced check deposit.",
+        sar_required: true,
+        nodes: [
+          { id: "ACC_BUST_1", type: "Account", label: "ACC_BUST_1", x: 140, y: 180 },
+          { id: "TXN_80105", type: "Transaction", label: "$9,500 Burst", x: 270, y: 120 },
+          { id: "TXN_BURST_2", type: "Transaction", label: "$2,800 Past", x: 270, y: 240 },
+          { id: "MERCHANT_LUX", type: "Device", label: "POS Terminal", x: 410, y: 180 }
+        ],
+        edges: [
+          { from: "TXN_80105", to: "ACC_BUST_1", label: "DEBITED_FROM" },
+          { from: "TXN_BURST_2", to: "ACC_BUST_1", label: "DEBITED_FROM" },
+          { from: "TXN_80105", to: "MERCHANT_LUX", label: "PAID_TO" }
+        ],
+        pre_nba: "DECLINE_TRANSACTION and SUSPEND_CREDIT_LINE",
+        pre_rationale: "Velocity ratio 3.2x above 6-month baseline with 95% credit depletion.",
+        post_fraud: {
+          action: "FREEZE_ACCOUNT and FILE_SAR_REPORT",
+          rationale: "NSF notification confirmed check payment bounced. Account terminated and sent to asset recovery.",
+          status: "CLOSED_FRAUD",
+          tier: "TIER_3_SENIOR_COMPLIANCE"
+        },
+        post_cleared: {
+          action: "ALLOW_TRANSACTION",
+          rationale: "Customer verified authorized wedding expenses with cleared funds wire.",
+          status: "CLOSED_CLEARED",
+          tier: "TIER_2_ANALYST"
+        }
+      },
+      {
+        id: "CASE_06",
+        title: "High-Velocity Carding & Multi-Mule Layering ($6,200)",
+        trigger: "MODEL_SCORE",
+        amount: 6200.00,
+        risk: 0.95,
+        pattern: "CARDING_AND_MULE_FUNNELING",
+        finding: "TigerGraph trace_fund_flow traced $6,200 immediately dispersed across 3 mule hops with near-zero holding duration.",
+        sar_required: true,
+        nodes: [
+          { id: "ACC_SOURCE", type: "Account", label: "ACC_SOURCE", x: 100, y: 200 },
+          { id: "MULE_1", type: "Account", label: "Mule Hop 1", x: 230, y: 130 },
+          { id: "MULE_2", type: "Account", label: "Mule Hop 2", x: 230, y: 270 },
+          { id: "OFFSHORE", type: "IPAddress", label: "Crypto Gateway", x: 380, y: 200 }
+        ],
+        edges: [
+          { from: "ACC_SOURCE", to: "MULE_1", label: "$3,100" },
+          { from: "ACC_SOURCE", to: "MULE_2", label: "$3,100" },
+          { from: "MULE_1", to: "OFFSHORE", label: "OUTWARD" },
+          { from: "MULE_2", to: "OFFSHORE", label: "OUTWARD" }
+        ],
+        pre_nba: "TEMPORARY_24H_HOLD and REQUEST_STEP_UP_AUTH",
+        pre_rationale: "Rapid outbound wire velocity following card testing micro-charges.",
+        post_fraud: {
+          action: "BLOCK_CARD, FREEZE_ACCOUNT, and FILE_SAR_REPORT",
+          rationale: "Outward transfer freeze executed. Stolen card testing confirmed on digital gift card merchant.",
+          status: "CLOSED_FRAUD",
+          tier: "TIER_3_SENIOR_COMPLIANCE"
+        },
+        post_cleared: {
+          action: "ALLOW_TRANSACTION",
+          rationale: "Legitimate supplier payment split between contractors.",
+          status: "CLOSED_CLEARED",
+          tier: "TIER_2_ANALYST"
+        }
+      },
+      {
+        id: "CASE_07",
+        title: "First-Party Friendly Fraud (Legitimate Home Device Dispute)",
+        trigger: "CUSTOMER_REPORT",
+        amount: 850.00,
+        risk: 0.35,
+        pattern: "BENIGN_BASELINE",
+        finding: "Graph analysis confirms transaction executed on customer's verified iPad from home residential IP. Delivery confirmed.",
+        sar_required: false,
+        nodes: [
+          { id: "ACC_2017", type: "Account", label: "ACC_2017", x: 130, y: 180 },
+          { id: "TXN_80107", type: "Transaction", label: "$850 iPad App", x: 260, y: 180 },
+          { id: "DEV_IPAD", type: "Device", label: "Home iPad", x: 390, y: 120 },
+          { id: "IP_HOME", type: "IPAddress", label: "Residential IP", x: 390, y: 240 }
+        ],
+        edges: [
+          { from: "TXN_80107", to: "ACC_2017", label: "DEBITED_FROM" },
+          { from: "TXN_80107", to: "DEV_IPAD", label: "SAVED_DEVICE" },
+          { from: "TXN_80107", to: "IP_HOME", label: "HOME_IP" }
+        ],
+        pre_nba: "ALLOW_TRANSACTION",
+        pre_rationale: "Zero anomaly signals. Transaction matches verified home hardware baseline.",
+        post_fraud: {
+          action: "DENY_CHARGEBACK_DISPUTE and WARN_CUSTOMER",
+          rationale: "Merchant verified shipment to billing address. Cardholder admitted family member made purchase. Dispute rejected.",
+          status: "CLOSED_CLEARED",
+          tier: "TIER_2_ANALYST"
+        },
+        post_cleared: {
+          action: "ALLOW_TRANSACTION",
+          rationale: "Customer withdrew claim after review.",
+          status: "CLOSED_CLEARED",
+          tier: "TIER_1_AUTO"
+        }
+      }
+    ];
+
+    // Populate dropdown with all 20 benchmark cases
+    const selectEl = document.getElementById("case-select");
+    CASES.forEach((c, idx) => {
+      const opt = document.createElement("option");
+      opt.value = idx;
+      opt.textContent = `${c.id}: ${c.title} ($${c.amount.toLocaleString()})`;
+      selectEl.appendChild(opt);
+    });
+
+    let currentCaseIdx = 0;
+    let currentEvidenceChoice = "CONFIRMED_FRAUD";
+
+    function renderActiveCase() {
+      const c = CASES[currentCaseIdx];
+      document.getElementById("case-counter-badge").textContent = `${c.id} (${currentCaseIdx + 1}/${CASES.length})`;
+      document.getElementById("stat-trigger").textContent = c.trigger;
+      document.getElementById("stat-amount").textContent = `$${c.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+      document.getElementById("stat-risk").textContent = `${c.risk.toFixed(2)} / 1.00`;
+      document.getElementById("stat-pattern").textContent = c.pattern;
+      document.getElementById("graph-finding-text").textContent = c.finding;
+      document.getElementById("pre-nba-action").textContent = c.pre_nba;
+      document.getElementById("pre-nba-rationale").textContent = c.pre_rationale;
+
+      // Update post-NBA based on evidence simulator choice
+      const postOutcome = currentEvidenceChoice === "CONFIRMED_FRAUD" ? c.post_fraud : c.post_cleared;
+      document.getElementById("post-nba-action").textContent = postOutcome.action;
+      document.getElementById("post-nba-rationale").textContent = postOutcome.rationale;
+      document.getElementById("post-nba-tier").textContent = postOutcome.tier;
+      document.getElementById("governance-chip").textContent = postOutcome.tier;
+
+      // SAR narrative update
+      const sarEl = document.getElementById("sar-narrative");
+      const sarBadge = document.getElementById("sar-badge");
+      if (c.sar_required && currentEvidenceChoice === "CONFIRMED_FRAUD") {
+        sarEl.textContent = `SUSPICIOUS ACTIVITY REPORT (FINCEN FORM 111)\nFiling Institution: Apex National Bank | Tracking: SAR-2026-${c.id}\nAmount: $${c.amount.toLocaleString()} USD | Typology: ${c.pattern}\nFindings: ${c.finding}\nPre-Action: ${c.pre_nba}\nFinal Decision: ${postOutcome.action}\nApproval: BSA/AML Compliance Officer (Tier-3)`;
+        sarBadge.textContent = "31 CFR § 1020.320 (FILED)";
+        sarBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-500/20 text-red-400";
+      } else {
+        sarEl.textContent = "SUSPICIOUS ACTIVITY REPORT NOT REQUIRED\nActivity either cleared through identity validation or remains under regulatory monetary thresholds ($5,000).";
+        sarBadge.textContent = "EXEMPT";
+        sarBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400";
+      }
+
+      drawGraph(c);
+    }
+
+    function drawGraph(c) {
+      const svg = document.getElementById("network-svg");
+      svg.innerHTML = "";
+
+      // Draw edges
+      c.edges.forEach(e => {
+        const source = c.nodes.find(n => n.id === e.from);
+        const target = c.nodes.find(n => n.id === e.to);
+        if (source && target) {
+          // Line
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", source.x);
+          line.setAttribute("y1", source.y);
+          line.setAttribute("x2", target.x);
+          line.setAttribute("y2", target.y);
+          line.setAttribute("stroke", "#475569");
+          line.setAttribute("stroke-width", "1.5");
+          line.setAttribute("stroke-dasharray", "4,2");
+          svg.appendChild(line);
+
+          // Edge Label
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", (source.x + target.x) / 2);
+          text.setAttribute("y", (source.y + target.y) / 2 - 5);
+          text.setAttribute("fill", "#94a3b8");
+          text.setAttribute("font-size", "9px");
+          text.setAttribute("font-family", "ui-monospace, monospace");
+          text.setAttribute("text-anchor", "middle");
+          text.textContent = e.label;
+          svg.appendChild(text);
+        }
+      });
+
+      // Draw nodes
+      c.nodes.forEach(n => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("transform", `translate(${n.x}, ${n.y})`);
+        g.setAttribute("cursor", "pointer");
+
+        // Color coding
+        let fill = "#3b82f6"; // Account
+        if (n.type === "Transaction") fill = "#ef4444";
+        else if (n.type === "Device") fill = "#a855f7";
+        else if (n.type === "IPAddress") fill = "#06b6d4";
+        else if (n.type === "Customer") fill = "#10b981";
+
+        // Circle
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("r", n.type === "Transaction" ? "16" : "13");
+        circle.setAttribute("fill", fill);
+        circle.setAttribute("stroke", "#ffffff");
+        circle.setAttribute("stroke-width", "1.5");
+        g.appendChild(circle);
+
+        // Label
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", "18");
+        text.setAttribute("y", "4");
+        text.setAttribute("fill", "#f8fafc");
+        text.setAttribute("font-size", "10px");
+        text.setAttribute("font-weight", "600");
+        text.setAttribute("font-family", "ui-monospace, monospace");
+        text.textContent = n.label;
+        g.appendChild(text);
+
+        // Tooltip event
+        g.addEventListener("mouseenter", (evt) => {
+          const tt = document.getElementById("graph-tooltip");
+          tt.classList.remove("hidden");
+          tt.style.left = (n.x + 20) + "px";
+          tt.style.top = (n.y - 20) + "px";
+          tt.innerHTML = `<div class="font-bold text-blue-400">${n.type}</div><div>ID: <strong>${n.id}</strong></div><div class="text-[10px] text-slate-400">TigerGraph Entity Record</div>`;
+        });
+        g.addEventListener("mouseleave", () => {
+          document.getElementById("graph-tooltip").classList.add("hidden");
+        });
+
+        svg.appendChild(g);
+      });
+    }
+
+    // Event Listeners
+    selectEl.addEventListener("change", (e) => {
+      currentCaseIdx = parseInt(e.target.value);
+      renderActiveCase();
+    });
+
+    document.querySelectorAll('input[name="evidence-sim"]').forEach(radio => {
+      radio.addEventListener("change", (e) => {
+        currentEvidenceChoice = e.target.value;
+      });
+    });
+
+    document.getElementById("btn-apply-sim").addEventListener("click", () => {
+      renderActiveCase();
+      const container = document.getElementById("post-nba-container");
+      container.classList.add("ring-2", "ring-blue-500");
+      setTimeout(() => container.classList.remove("ring-2", "ring-blue-500"), 800);
+    });
+
+    document.getElementById("btn-copy-sar").addEventListener("click", () => {
+      const text = document.getElementById("sar-narrative").textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("FinCEN Suspicious Activity Report (SAR) narrative copied to clipboard!");
+      });
+    });
+
+    // Initial render
+    renderActiveCase();
+  </script>
+</body>
+</html>
